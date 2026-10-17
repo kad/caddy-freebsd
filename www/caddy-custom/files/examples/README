@@ -7,7 +7,7 @@ links to the upstream documentation of its module.
 Drop-in directory
 -----------------
 
-/usr/local/etc/caddy/Caddyfile (copy it from Caddyfile.sample) starts with
+/usr/local/etc/caddy/Caddyfile (created from Caddyfile.sample at first install) starts with
 
     import /usr/local/etc/caddy/Caddyfile.d/*.caddyfile
 

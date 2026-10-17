@@ -5,7 +5,7 @@
 caddy-custom includes extra modules: layer4, dynamic_dns, rate_limit,
 cloudflare DNS and wstunnel.
 
-- Copy %%PREFIX%%/etc/caddy/Caddyfile.sample to Caddyfile and edit it.
+- Edit %%ETCDIR%%/Caddyfile (created from Caddyfile.sample on first install).
 - Drop-in files: %%ETCDIR%%/Caddyfile.d/*.caddyfile
 - Secrets for {env.NAME} in the Caddyfile: %%ETCDIR%%/environment
   (sh syntax, mode 0600, read by the rc script; see caddy_envfile)
