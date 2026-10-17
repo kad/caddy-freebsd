@@ -8,7 +8,22 @@ import %%ETCDIR%%/Caddyfile.d/*.caddyfile
 #
 # Unless the file starts with a global options block, the first
 # uncommented line is always the address of your site.
-localhost {
+#
+# The demo site is plain HTTP on port 80. A site named "localhost" or
+# "*.local", or one using "tls internal", is served from Caddy's own CA, and
+# Caddy then tries to install that CA's root certificate into the system trust
+# store with sudo on every start, which hangs or fails for an unprivileged
+# caddy_user. If you use the internal CA, either put the root certificate
+# (/var/db/caddy/data/caddy/pki/authorities/local/root.crt) into
+# /usr/local/etc/ssl/certs/ yourself, or add this global options block at the
+# very top of the Caddyfile:
+#
+#	{
+#		skip_install_trust
+#	}
+#
+# Replace ":80" with your domain name to get automatic HTTPS from ACME.
+:80 {
 	# Set this path to your site's directory:
 	root * %%WWWDIR%%
 
