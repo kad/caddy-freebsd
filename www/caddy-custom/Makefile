@@ -40,7 +40,7 @@ CADDY_CUSTOM_PLUGINS?=	\
 	github.com/mholt/caddy-dynamicdns@v0.0.0-20260805195708-67d107a42c02 \
 	github.com/mholt/caddy-ratelimit@v0.1.0 \
 	github.com/caddy-dns/cloudflare@v0.2.4 \
-	github.com/kad/wstunnel-go/pkg/caddy@v0.0.5
+	github.com/kad/wstunnel-go/pkg/caddy@v0.0.6
 
 # Modules pinned to a version without being plugins (module@version), e.g. the
 # core module of a plugin that lives in the same repository.
