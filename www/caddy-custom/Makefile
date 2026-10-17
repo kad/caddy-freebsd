@@ -29,9 +29,9 @@ ETCDIR=		${PREFIX}/etc/caddy
 USERS=		www
 GROUPS=		www
 
-CADDY_VERSION!=	${MAKE} -C ${.CURDIR}/../caddy  -V '$${DISTVERSION}.$${PORTREVISION}'
-CADDY_DISTVERSION!=	${MAKE} -C ${.CURDIR}/../caddy  -V '$${DISTVERSION}'
-XCADDY_VERSION!=${MAKE} -C ${.CURDIR}/../xcaddy -V '$${DISTVERSION}.$${PORTREVISION}'
+CADDY_VERSION!=	${MAKE} -C ${PORTSDIR:U/usr/ports}/www/caddy  -V '$${DISTVERSION}.$${PORTREVISION}'
+CADDY_DISTVERSION!=	${MAKE} -C ${PORTSDIR:U/usr/ports}/www/caddy  -V '$${DISTVERSION}'
+XCADDY_VERSION!=${MAKE} -C ${PORTSDIR:U/usr/ports}/www/xcaddy -V '$${DISTVERSION}.$${PORTREVISION}'
 
 # Pinned plugin versions. Override the whole list in make.conf with
 # CADDY_CUSTOM_PLUGINS= ... to build something else.

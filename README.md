@@ -63,6 +63,10 @@ The package is written to `~/packages/All/`. Install it (root):
 
     # pkg install ~/packages/All/caddy-custom-*.pkg
 
+The port can also be built straight from the clone, without copying it into
+the ports tree: `cd ~/caddy-freebsd/www/caddy-custom` and run the same `make`
+command (the caddy and xcaddy versions are looked up through `PORTSDIR`).
+
 Dependencies are not installed automatically as a normal user, so a missing
 one stops the build with a message.
 
