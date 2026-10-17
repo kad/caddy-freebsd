@@ -43,13 +43,28 @@ Install from the resulting repository (replaces `caddy`, they conflict):
 
     pkg install caddy-custom
 
-## Build without poudriere
+## Build a package as a normal user (no poudriere)
 
-    cp -R www/caddy-custom /usr/ports/www/caddy-custom   # replaces the stock one
-    cd /usr/ports/www/caddy-custom && make install clean
+Needs root only once, to install the build dependencies:
 
-(needs `pkg install xcaddy`; the port's Makefile does it as a build dependency
-when building from the ports tree.)
+    # pkg install xcaddy go127 git
+
+Then, as a normal user, with a ports tree in your home directory (no need to
+touch /usr/ports):
+
+    git clone --depth 1 https://git.FreeBSD.org/ports.git ~/ports
+    git clone https://github.com/kad/caddy-freebsd ~/caddy-freebsd
+    cp -R ~/caddy-freebsd/www/caddy-custom ~/ports/www/    # replaces the stock one
+    cd ~/ports/www/caddy-custom
+    make PORTSDIR=$HOME/ports WRKDIRPREFIX=$HOME/pbuild PACKAGES=$HOME/packages \
+        DISTDIR=$HOME/distfiles BATCH=yes package
+
+The package is written to `~/packages/All/`. Install it (root):
+
+    # pkg install ~/packages/All/caddy-custom-*.pkg
+
+Dependencies are not installed automatically as a normal user, so a missing
+one stops the build with a message.
 
 ## Updating
 

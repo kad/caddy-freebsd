@@ -1,8 +1,9 @@
 # Overlay of www/caddy-custom: caddy built with xcaddy plus a preset list of
 # plugins, with drop-in configuration support and example configurations.
 # Overlay it over the ports tree (poudriere -O), see ../../README.md.
-# This port will NOT build in poudriere without ALLOW_NETWORKING_PACKAGES
-# (xcaddy downloads the plugin sources).
+# The build downloads the plugin sources (xcaddy), so poudriere needs
+# ALLOW_NETWORKING_PACKAGES="caddy-custom". Unlike the stock port there is no
+# NO_PACKAGE, so "make package" works for private use.
 
 PORTNAME=	caddy-custom
 PORTVERSION=	${CADDY_VERSION}.${XCADDY_VERSION}
@@ -19,8 +20,6 @@ LICENSE=	APACHE20
 BUILD_DEPENDS=	xcaddy:www/xcaddy
 
 USES=		go:1.27+,no_targets
-
-NO_PACKAGE=	Requires network access (see README.md)
 
 CONFLICTS_INSTALL=	caddy
 
