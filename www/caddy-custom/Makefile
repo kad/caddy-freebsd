@@ -18,7 +18,7 @@ LICENSE=	APACHE20
 
 BUILD_DEPENDS=	xcaddy:www/xcaddy
 
-USES=		go:no_targets
+USES=		go:1.27+,no_targets
 
 NO_PACKAGE=	Requires network access (see README.md)
 
