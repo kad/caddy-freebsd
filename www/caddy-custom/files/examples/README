@@ -1,0 +1,77 @@
+Example configurations for the modules bundled in this caddy package
+====================================================================
+
+Files are in /usr/local/share/examples/caddy-custom/. Each has a header with
+links to the upstream documentation of its module.
+
+Drop-in directory
+-----------------
+
+/usr/local/etc/caddy/Caddyfile (copy it from Caddyfile.sample) starts with
+
+    import /usr/local/etc/caddy/Caddyfile.d/*.caddyfile
+
+so any file named *.caddyfile in /usr/local/etc/caddy/Caddyfile.d/ is part of the
+configuration (files are read in alphabetical order). Check and apply with
+
+    caddy validate --config /usr/local/etc/caddy/Caddyfile
+    service caddy reload
+
+Copy an example and give it the .caddyfile extension:
+
+    cp /usr/local/share/examples/caddy-custom/ratelimit.Caddyfile \
+       /usr/local/etc/caddy/Caddyfile.d/ratelimit.caddyfile
+
+Rules that decide what can live in a drop-in:
+
+ * Site blocks (example.com { ... }) and snippets can be in any number of
+   drop-ins.
+ * The global options block ({ ... } without an address) may exist only ONCE
+   in the whole configuration and must come before every site block. Either
+   keep it in /usr/local/etc/caddy/Caddyfile above the import line, or put it in a
+   single drop-in that sorts first, e.g. 00-global.caddyfile. A second global
+   block, or a global block after a site block, is an error ("server block
+   without any key is global configuration, and if used, it must be first").
+ * The sample Caddyfile also contains a "localhost" demo site. Remove
+   or change it if it conflicts with your sites.
+
+What each example contains
+--------------------------
+
+ file                      global options block        site blocks   as drop-in
+ ------------------------  --------------------------  ------------  ----------------------
+ wstunnel.Caddyfile        no                          yes           yes, as is
+ ratelimit.Caddyfile       no                          yes           yes, as is
+ wstunnel-rules.yaml       not a Caddyfile             -             referenced by
+                                                                     restrict_config
+ dynamicdns.Caddyfile      yes (dynamic_dns)           yes           global part: only
+                                                                     00-global.caddyfile
+ cloudflare.Caddyfile      yes (acme_dns)              yes           global part: only
+                                                                     00-global.caddyfile;
+                                                                     or use the per-site
+                                                                     "tls { dns ... }" form,
+                                                                     then it is a plain
+                                                                     drop-in
+ layer4.Caddyfile          yes (https_port, layer4)    yes           global part: only
+                                                                     00-global.caddyfile
+ layer4-alt-port.Caddyfile yes (layer4)                yes           global part: only
+                                                                     00-global.caddyfile
+
+If several examples have a global block (for example dynamicdns and layer4),
+merge their contents into ONE global block, for instance:
+
+    # /usr/local/etc/caddy/Caddyfile.d/00-global.caddyfile
+    {
+        dynamic_dns {
+            ...
+        }
+        layer4 {
+            ...
+        }
+    }
+
+and put the site blocks of the examples into separate drop-ins.
+
+Secrets (API tokens) are read from /usr/local/etc/caddy/environment (sh syntax,
+sourced by the rc script, see the "environment" example in this directory).
+Do not put secrets in rc.conf, it is world readable.

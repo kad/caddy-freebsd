@@ -1,0 +1,29 @@
+# Drop-in configuration: files %%ETCDIR%%/Caddyfile.d/*.caddyfile are read
+# here. A global options block ({ ... }) must come first: put your own above
+# this line or in Caddyfile.d/00-global.caddyfile (only one such block may
+# exist). Examples for the bundled modules: %%EXAMPLESDIR%%/README
+import %%ETCDIR%%/Caddyfile.d/*.caddyfile
+
+# The Caddyfile is an easy way to configure your Caddy web server.
+#
+# Unless the file starts with a global options block, the first
+# uncommented line is always the address of your site.
+localhost {
+	# Set this path to your site's directory:
+	root * %%WWWDIR%%
+
+	# Enable the static file server:
+	file_server
+
+	# Set up a reverse proxy:
+	# reverse_proxy localhost:8080
+
+	# Enable logging:
+	log {
+		output file /var/log/caddy/access.log
+		format json
+	}
+}
+
+# Refer to the Caddy docs for more information:
+# https://caddyserver.com/docs/caddyfile

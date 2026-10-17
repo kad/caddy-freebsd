@@ -1,0 +1,45 @@
+# Drop-in: contains a global options block, which may exist only once: use it
+# in /usr/local/etc/caddy/Caddyfile or as 00-global.caddyfile, see README.
+# Upstream docs: https://github.com/caddy-dns/cloudflare
+# ACME DNS challenge: https://caddyserver.com/docs/automatic-https#dns-challenge
+#
+# caddy-dns/cloudflare: DNS-01 ACME challenge, e.g. for wildcard
+# certificates or hosts not reachable from the internet.
+# Token needs Zone:Read and DNS:Edit permissions. Environment:
+#   CLOUDFLARE_API_TOKEN=...
+{
+	# Use for all sites
+	acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+}
+
+*.example.com, example.com {
+	# Or per site:
+	# tls {
+	#	dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	#	resolvers 1.1.1.1
+	# }
+	@app host app.example.com
+	handle @app {
+		reverse_proxy 127.0.0.1:3000
+	}
+	handle {
+		abort
+	}
+}
+
+# Wildcard certificate from elsewhere (PEM files from an internal CA, certbot,
+# a purchased certificate), e.g. for internal names. Caddy then does no ACME
+# for these names and does not renew the files: replace them and reload
+# caddy. The certificate file should contain the full chain; both files must
+# be readable by the user caddy runs as (key: mode 0640 root:www).
+#
+# *.foo.example.com {
+#	tls /usr/local/etc/caddy/certs/foo.example.com.crt /usr/local/etc/caddy/certs/foo.example.com.key
+#	@app host app.foo.example.com
+#	handle @app {
+#		reverse_proxy 127.0.0.1:3000
+#	}
+#	handle {
+#		abort
+#	}
+# }

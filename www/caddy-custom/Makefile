@@ -1,0 +1,78 @@
+# Overlay of www/caddy-custom: caddy built with xcaddy plus a preset list of
+# plugins, with drop-in configuration support and example configurations.
+# Overlay it over the ports tree (poudriere -O), see ../../README.md.
+# This port will NOT build in poudriere without ALLOW_NETWORKING_PACKAGES
+# (xcaddy downloads the plugin sources).
+
+PORTNAME=	caddy-custom
+PORTVERSION=	${CADDY_VERSION}.${XCADDY_VERSION}
+PORTREVISION=	1
+CATEGORIES=	www
+DISTFILES=	# none
+
+MAINTAINER=	kad@kad.name
+COMMENT=	Caddy (www/caddy) with l4, dynamicdns, ratelimit, cloudflare and wstunnel
+WWW=		https://caddyserver.com
+
+LICENSE=	APACHE20
+
+BUILD_DEPENDS=	xcaddy:www/xcaddy
+
+USES=		go:no_targets
+
+NO_PACKAGE=	Requires network access (see README.md)
+
+CONFLICTS_INSTALL=	caddy
+
+USE_RC_SUBR=	caddy
+SUB_FILES=	Caddyfile.sample pkg-message
+USERS=		www
+GROUPS=		www
+
+CADDY_VERSION!=	${MAKE} -C ${.CURDIR}/../caddy  -V '$${DISTVERSION}.$${PORTREVISION}'
+CADDY_DISTVERSION!=	${MAKE} -C ${.CURDIR}/../caddy  -V '$${DISTVERSION}'
+XCADDY_VERSION!=${MAKE} -C ${.CURDIR}/../xcaddy -V '$${DISTVERSION}.$${PORTREVISION}'
+
+# Pinned plugin versions. Override the whole list in make.conf with
+# CADDY_CUSTOM_PLUGINS= ... to build something else.
+CADDY_CUSTOM_PLUGINS?=	\
+	github.com/mholt/caddy-l4@v0.1.2 \
+	github.com/mholt/caddy-dynamicdns@v0.0.0-20260805195708-67d107a42c02 \
+	github.com/mholt/caddy-ratelimit@v0.1.0 \
+	github.com/caddy-dns/cloudflare@v0.2.4 \
+	github.com/kad/wstunnel-go/pkg/caddy@v0.0.4
+
+.for plugin in ${CADDY_CUSTOM_PLUGINS}
+PLUGINS+=	--with ${plugin}
+.endfor
+
+XCADDY_GO_BUILD_FLAGS?=	${GO_BUILDFLAGS}
+
+XCADDY_ENV+=	XCADDY_WHICH_GO="${GO_CMD}" \
+		XCADDY_GO_BUILD_FLAGS="${XCADDY_GO_BUILD_FLAGS}" \
+		GOCACHE=${WRKDIR}/gocache GOPATH=${WRKDIR}
+
+EXAMPLES_FILES=	README cloudflare.Caddyfile dynamicdns.Caddyfile environment \
+		layer4-alt-port.Caddyfile layer4.Caddyfile ratelimit.Caddyfile \
+		wstunnel-rules.yaml wstunnel.Caddyfile
+
+PLIST_FILES=	bin/caddy \
+		"@sample ${ETCDIR_REL}/Caddyfile.sample" \
+		"@dir ${ETCDIR_REL}/Caddyfile.d"
+.for f in ${EXAMPLES_FILES}
+PLIST_FILES+=	${EXAMPLESDIR_REL}/${f}
+.endfor
+
+do-build:
+	${MKDIR} ${WRKSRC}
+	cd ${WRKSRC} && ${XCADDY_ENV} ${LOCALBASE}/bin/xcaddy build v${CADDY_DISTVERSION} ${PLUGINS}
+
+do-install:
+	${INSTALL_PROGRAM} ${WRKSRC}/caddy ${STAGEDIR}${PREFIX}/bin
+	${MKDIR} ${STAGEDIR}${ETCDIR}/Caddyfile.d ${STAGEDIR}${EXAMPLESDIR}
+	${INSTALL_DATA} ${WRKDIR}/Caddyfile.sample ${STAGEDIR}${ETCDIR}
+.for f in ${EXAMPLES_FILES}
+	${INSTALL_DATA} ${FILESDIR}/examples/${f} ${STAGEDIR}${EXAMPLESDIR}
+.endfor
+
+.include <bsd.port.mk>

@@ -1,0 +1,42 @@
+# Drop-in: yes, site blocks only (cp to /usr/local/etc/caddy/Caddyfile.d/wstunnel.caddyfile, see README).
+# Upstream docs: https://github.com/kad/wstunnel-go/blob/main/docs/CONFIG.md#caddy-module
+# Caddyfile syntax: https://caddyserver.com/docs/caddyfile
+#
+# wstunnel server behind Caddy (http.handlers.wstunnel).
+# Caddy terminates TLS (and mTLS if configured); everything outside the
+# prefix is handled by the other directives of the site.
+#
+# Client:
+#   wstunnel-go client -L tcp://2222:127.0.0.1:22 \
+#       --http-upgrade-path-prefix wstunnel wss://tunnel.example.com
+#   ssh -p 2222 localhost
+tunnel.example.com {
+	route /wstunnel/* {
+		wstunnel {
+			prefix wstunnel
+			mode rust
+			# Rules file, see caddy-example-wstunnel-rules.yaml
+			restrict_config /usr/local/etc/caddy/wstunnel-rules.yaml
+			# Alternative to restrict_config: simple allow-list (repeatable)
+			# restrict_to 127.0.0.1:22
+			ping_interval 30s
+			idle_timeout 3m
+		}
+	}
+
+	# Everything else
+	respond "nothing to see here" 404
+}
+
+# Layer 3 (tun) sessions, Go clients only. Needs a rule allowing "Tun".
+# tun.example.com {
+#	route /wstunnel/* {
+#		wstunnel {
+#			prefix wstunnel
+#			enable_tun
+#			restrict_config /usr/local/etc/caddy/wstunnel-rules.yaml
+#			tun_allow 10.0.0.0/8 192.0.2.0/24
+#			tun_max_sessions 64
+#		}
+#	}
+# }

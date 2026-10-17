@@ -1,0 +1,17 @@
+[
+{
+  type: install
+  message: <<INSTALL
+caddy-custom includes extra modules: layer4, dynamic_dns, rate_limit,
+cloudflare DNS and wstunnel.
+
+- Copy %%PREFIX%%/etc/caddy/Caddyfile.sample to Caddyfile and edit it.
+- Drop-in files: %%ETCDIR%%/Caddyfile.d/*.caddyfile
+- Secrets for {env.NAME} in the Caddyfile: %%ETCDIR%%/environment
+  (sh syntax, mode 0600, read by the rc script; see caddy_envfile)
+- Examples and the drop-in rules: %%EXAMPLESDIR%%/README
+- Enable: service caddy enable; for running as www:www see
+  the header of %%PREFIX%%/etc/rc.d/caddy
+INSTALL
+}
+]

@@ -1,0 +1,8 @@
+# /usr/local/etc/caddy/environment
+#
+# Sourced by the rc script (rc variable caddy_envfile) as sh syntax and exported
+# to caddy. Holds secrets referenced as {env.NAME} in the Caddyfile, so keep it
+# unreadable for others (the rc script runs as root and reads it before dropping to caddy_user):
+#   install -m 0600 -o root -g wheel /dev/null /usr/local/etc/caddy/environment
+#   service caddy restart
+CLOUDFLARE_API_TOKEN=changeme

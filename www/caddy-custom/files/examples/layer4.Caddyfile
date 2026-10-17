@@ -1,0 +1,94 @@
+# Drop-in: contains a global options block, which may exist only once: use it
+# in /usr/local/etc/caddy/Caddyfile or as 00-global.caddyfile, see README.
+# Upstream docs: https://github.com/mholt/caddy-l4 (more examples in docs/examples/)
+# SSH-over-TLS: https://github.com/mholt/caddy-l4/blob/master/docs/examples/ssh-over-tls.md
+#
+# caddy-l4: share TCP port 443 between HTTPS (served by Caddy itself) and
+# SSH, so that ssh works from networks that only allow outbound 443.
+#
+# Caddy's own HTTPS listener is moved to 8443; layer4 owns :443 and routes by
+# the first bytes of the connection.
+#
+# SSH clients:
+#
+#  1. Plain SSH on 443 (works wherever outbound 443 is not inspected):
+#       ssh -p 443 user@ssh.example.com
+#
+#  2. SSH wrapped in TLS (looks like HTTPS to firewalls and proxies). The
+#     client opens a TLS connection with SNI ssh.example.com and speaks SSH
+#     inside it. Put in ~/.ssh/config:
+#       Host ssh.example.com
+#           Port 443
+#           ProxyCommand openssl s_client -quiet -connect %h:%p -servername %h
+#     then simply:  ssh user@ssh.example.com
+#     Without a config entry:
+#       ssh -o ProxyCommand="openssl s_client -quiet -connect %h:443 -servername %h" \
+#           user@ssh.example.com
+#     Alternatives for ProxyCommand:
+#       ncat --ssl --ssl-servername %h %h %p
+#       socat - OPENSSL:%h:%p,snihost=%h
+#     To also verify the certificate add "-verify_return_error -verify_hostname %h"
+#     to openssl (or ",verify=1" to socat).
+#
+#  3. Through an HTTP proxy that allows CONNECT to 443:
+#       ProxyCommand openssl s_client -quiet -proxy proxy.corp:3128 \
+#           -connect %h:%p -servername %h
+#
+# Troubleshooting: "ssh -v" shows the SSH banner after the TLS handshake; if
+# the handshake fails check that the certificate for ssh.example.com was
+# issued (tail /var/log/caddy/caddy.log | grep ssh.example.com).
+{
+	https_port 8443
+	layer4 {
+		:443 {
+			# Plain SSH (no TLS) goes to the local sshd
+			@ssh ssh
+			route @ssh {
+				proxy 127.0.0.1:22
+			}
+
+			# TLS to ssh.example.com: terminate here, then route SSH inside
+			@tls-ssh tls sni ssh.example.com
+			route @tls-ssh {
+				tls
+				subroute {
+					@ssh2 ssh
+					route @ssh2 {
+						proxy 127.0.0.1:22
+					}
+				}
+			}
+
+			# Any other TLS goes to Caddy's HTTP server, keeping the client IP
+			# through PROXY protocol
+			@tls tls
+			route @tls {
+				proxy {
+					proxy_protocol v2
+					upstream 127.0.0.1:8443
+				}
+			}
+		}
+	}
+}
+
+# The HTTP app must accept the PROXY header from the layer4 hop
+# (add to the global options block above):
+#	servers :8443 {
+#		listener_wrappers {
+#			proxy_protocol {
+#				allow 127.0.0.1/32
+#			}
+#			tls
+#		}
+#	}
+
+# Declaring the name makes Caddy obtain a certificate for it, which the
+# "tls" handler on :443 then uses (ACME challenges arrive via :443 too).
+ssh.example.com:8443 {
+	respond "ssh gateway" 404
+}
+
+www.example.com:8443 {
+	respond "hello"
+}

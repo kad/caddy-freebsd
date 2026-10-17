@@ -1,0 +1,10 @@
+Caddy web server (www/caddy) built with xcaddy and these plugins:
+
+- caddy-l4 (layer 4 TCP/UDP routing, SNI/SSH/... multiplexing)
+- caddy-dynamicdns (dynamic DNS updates)
+- caddy-ratelimit (HTTP rate limiting)
+- caddy-dns/cloudflare (DNS challenge and dynamic DNS provider)
+- wstunnel-go pkg/caddy (WebSocket/HTTP2 tunnel server)
+
+Configuration drop-ins are read from etc/caddy/Caddyfile.d/*.caddyfile.
+Examples for each module are installed in share/examples/caddy-custom.

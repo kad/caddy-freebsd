@@ -1,0 +1,76 @@
+# Drop-in: contains a global options block, which may exist only once: use it
+# in /usr/local/etc/caddy/Caddyfile or as 00-global.caddyfile, see README.
+# Upstream docs: https://github.com/mholt/caddy-dynamicdns
+# DNS provider: https://github.com/caddy-dns/cloudflare
+#
+# caddy-dynamicdns: keep DNS records pointed at this host's public IP.
+# Needs a DNS provider module (here cloudflare). Put the token in
+# /usr/local/etc/caddy/environment (see environment example) (sourced by the rc script, see caddy_envfile):
+#   CLOUDFLARE_API_TOKEN=...
+{
+	dynamic_dns {
+		provider cloudflare {env.CLOUDFLARE_API_TOKEN}
+		# <zone> [@ | subdomains...]; "@" is the zone root and is implied only
+		# when no subdomains are listed
+		domains {
+			example.com @ www home
+			example.net vpn
+		}
+
+		# IP sources are tried in order until one answers
+		ip_source upnp
+		ip_source simple_http https://icanhazip.com
+		ip_source simple_http https://api64.ipify.org
+		# Public address(es) of a local interface (at most one IPv4 + one IPv6)
+		#ip_source interface eth0
+		# Fixed addresses, e.g. for testing
+		#ip_source static 203.0.113.10 2001:db8::10
+		# UPnP with an explicit gateway description URL
+		#ip_source upnp http://192.168.1.1:5000/rootDesc.xml
+
+		check_interval 5m
+		ttl 1h
+
+		# Enable only one IP family (default: both). IPv6-only host with the
+		# address taken from the interface:
+		#versions ipv6
+		#ip_source interface eth0
+		versions ipv4 ipv6
+
+		# Which addresses may be published. Default: global unicast, not
+		# private. The most specific range wins.
+		#include 198.51.100.0/24 2001:db8::/32
+		#exclude 198.51.100.128/25
+
+		# Do not create records, only update ones that already exist
+		#update_only
+
+		# Also manage every host name found in this Caddyfile's site
+		# blocks, if it falls in the zones configured above
+		#dynamic_domains
+	}
+}
+
+home.example.com {
+	respond "hello from home"
+}
+
+# Several providers or accounts: put "domains" inside each provider block.
+# The other options above stay global. Repeating dynamic_dns itself does not
+# work, Caddy keeps only the last one.
+#
+# {
+#	dynamic_dns {
+#		provider cloudflare {env.CLOUDFLARE_API_TOKEN} {
+#			domains {
+#				example.com @ www
+#			}
+#		}
+#		provider cloudflare {env.CLOUDFLARE_API_TOKEN_NET} {
+#			domains {
+#				example.net @
+#			}
+#		}
+#		check_interval 5m
+#	}
+# }

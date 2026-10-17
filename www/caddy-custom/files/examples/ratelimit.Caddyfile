@@ -1,0 +1,37 @@
+# Drop-in: yes, site blocks only (cp to /usr/local/etc/caddy/Caddyfile.d/ratelimit.caddyfile, see README).
+# Upstream docs: https://github.com/mholt/caddy-ratelimit
+#
+# caddy-ratelimit: sliding-window rate limiting (HTTP 429 when exceeded).
+example.com {
+	# Limit per client IP: 20 requests per 10 seconds
+	rate_limit {
+		zone per_client {
+			key    {remote_host}
+			events 20
+			window 10s
+		}
+		# Global cap for the whole site
+		zone global {
+			key    static
+			events 1000
+			window 1m
+		}
+		# Allow a bit of variation to avoid clients retrying in lockstep
+		jitter 10
+		sweep_interval 1m
+	}
+
+	# Stricter limit only on the login path
+	route /login {
+		rate_limit {
+			zone login {
+				key    {remote_host}
+				events 5
+				window 1m
+			}
+		}
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	reverse_proxy 127.0.0.1:8080
+}

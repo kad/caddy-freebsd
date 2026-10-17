@@ -1,0 +1,32 @@
+# Upstream docs: https://github.com/kad/wstunnel-go/blob/main/docs/CONFIG.md#restriction-config-example
+#
+# Restriction rules for the wstunnel module (restrict_config).
+restrictions:
+  # Anyone may forward TCP to the local sshd only
+  - name: allow-ssh
+    match:
+      - Any
+    allow:
+      - !Tunnel
+        protocol: [tcp]
+        host: "^127\\.0\\.0\\.1$"
+        port: ["22"]
+
+  # Clients using this path prefix may reach internal HTTPS hosts
+  - name: allow-internal-https
+    match:
+      - PathPrefix: "^/wstunnel/"
+    allow:
+      - !Tunnel
+        protocol: [tcp]
+        host: ".*\\.internal\\.example\\.com"
+        port: ["443"]
+
+  # Reverse tunnels on a fixed port range
+  - name: allow-reverse-tcp
+    match:
+      - Any
+    allow:
+      - !ReverseTunnel
+        protocol: [ReverseTcp]
+        port: ["20000..20100"]

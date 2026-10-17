@@ -1,0 +1,154 @@
+# Drop-in: contains a global options block, which may exist only once: use it
+# in /usr/local/etc/caddy/Caddyfile or as 00-global.caddyfile, see README.
+# Upstream docs: https://github.com/mholt/caddy-l4 (more examples in docs/examples/)
+# Matchers and handlers: https://github.com/mholt/caddy-l4/tree/master/docs
+#
+# caddy-l4 as a router on an alternative port (8443). Caddy keeps serving
+# normal HTTP(S) on 80/443 as usual, nothing else changes there. Port 8443 is
+# a second entry point that sorts connections by protocol / TLS SNI / ALPN
+# and forwards them to caddy itself or somewhere else. Useful when 443 can not
+# be taken over, or as one more port to open in restrictive firewalls.
+#
+# Examples of clients:
+#   https://example.com:8443/                 (-> regular site served on 443)
+#   ssh -p 8443 user@example.com              (-> local sshd)
+#   ssh -o ProxyCommand="openssl s_client -quiet -connect %h:8443 -servername %h" \
+#       user@build.ssh.example.com            (-> 10.0.0.21:22, SSH inside TLS;
+#                                              the server name selects the host)
+#   psql "host=db.example.com port=8443 sslmode=require sslnegotiation=direct"
+#                                             (-> internal postgres, TLS ends there;
+#                                              direct TLS needs PostgreSQL 17+)
+#   openssl s_client -quiet -connect custom.app.example.com:8443 > serial.log
+#                                             (-> 10.0.0.88:8765 as a raw TCP pipe;
+#                                              stdin is sent to it too, use
+#                                              </dev/null for receive-only)
+#   socat TCP-LISTEN:8765,fork,reuseaddr OPENSSL:custom.app.example.com:8443
+#                                             (local plain port for other tools)
+#
+# ~/.ssh/config for the TLS-wrapped hosts (the host name is the SNI):
+#   Host ssh.example.com *.ssh.example.com
+#       Port 8443
+#       ProxyCommand openssl s_client -quiet -connect %h:%p -servername %h
+# then:  ssh user@build.ssh.example.com   or   ssh user@nas.ssh.example.com
+#
+# The names must resolve to this machine in DNS (A/AAAA, or a wildcard
+# *.ssh.example.com record).
+{
+	layer4 {
+		:8443 {
+			# Plain SSH
+			@ssh ssh
+			route @ssh {
+				proxy 127.0.0.1:22
+			}
+
+			# SSH inside TLS, one internal host per server name. Caddy terminates
+			# TLS with the certificate for that name (obtained and renewed through
+			# the normal ACME rules, see the site block below) and forwards the
+			# SSH stream to the internal machine.
+			@tls-ssh-gw tls sni ssh.example.com
+			route @tls-ssh-gw {
+				tls
+				proxy 127.0.0.1:22
+			}
+
+			@tls-ssh-build tls sni build.ssh.example.com
+			route @tls-ssh-build {
+				tls
+				proxy 10.0.0.21:22
+			}
+
+			@tls-ssh-nas tls sni nas.ssh.example.com
+			route @tls-ssh-nas {
+				tls
+				proxy 10.0.0.30:2222
+			}
+
+			# Any plain TCP service behind TLS: caddy terminates TLS for the name
+			# and pipes the decrypted bytes to the internal host, no protocol
+			# inspection. Here a serial-over-TCP data logger.
+			@tls-app tls sni custom.app.example.com
+			route @tls-app {
+				tls
+				proxy 10.0.0.88:8765
+			}
+
+			# TLS passthrough to another machine; the backend terminates TLS
+			# itself, caddy never sees the plaintext
+			@tls-db tls sni db.example.com
+			route @tls-db {
+				proxy 10.0.0.5:5432
+			}
+
+			# TLS routed by ALPN instead of SNI
+			@tls-dot tls alpn dot
+			route @tls-dot {
+				proxy 10.0.0.53:853
+			}
+
+			# Plain HTTP (caddy redirects it to https on 443)
+			@http http
+			route @http {
+				proxy 127.0.0.1:80
+			}
+
+			# All other TLS: hand over to caddy's regular HTTPS listener.
+			# Matchers are tried in order, so keep this one last. The client
+			# address seen by the sites is 127.0.0.1 (see the layer4 example
+			# for PROXY protocol if the real address is needed).
+			@tls tls
+			route @tls {
+				proxy 127.0.0.1:443
+			}
+
+			# Anything else matches nothing and the connection is closed
+		}
+	}
+}
+
+# Certificates for the TLS-wrapped SSH names. Declaring a name as a site makes
+# Caddy obtain and renew its certificate like for any HTTPS site. HTTP-01 and
+# TLS-ALPN-01 challenges work because Caddy still owns 80 and 443 here.
+# Instead of one certificate per name, a wildcard can cover all of them
+# (replace the site block below with one of these variants; the layer4 routes
+# above stay the same, any certificate Caddy holds for the SNI is used):
+#
+# a) wildcard from ACME, needs a DNS challenge (see the cloudflare example):
+#	*.ssh.example.com {
+#		tls {
+#			dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+#		}
+#		respond "ssh gateway" 404
+#	}
+#
+# b) wildcard certificate obtained some other way (internal CA, certbot,
+#    purchased), given as PEM files. Intended for internal names such as
+#    *.foo.example.com. The certificate file must contain the full chain, and
+#    the files must be readable by the user caddy runs as (caddy_user), e.g. in /usr/local/etc/caddy/certs
+#    (mode 0640 root:www for the key). Caddy does not renew these: replace
+#    the files and run "service caddy reload" when they change.
+#	*.foo.example.com {
+#		tls /usr/local/etc/caddy/certs/foo.example.com.crt /usr/local/etc/caddy/certs/foo.example.com.key
+#		respond "gateway" 404
+#	}
+#	Then use e.g. "@tls-ssh-x tls sni x.foo.example.com" in the layer4 routes.
+#
+# c) internal CA run by Caddy itself, for names that public ACME can not
+#    issue (private hosts); clients must trust Caddy's root certificate:
+#	*.foo.example.com {
+#		tls internal
+#		respond "gateway" 404
+#	}
+#
+ssh.example.com, build.ssh.example.com, nas.ssh.example.com {
+	respond "ssh gateway" 404
+}
+
+# Same for the plain TCP service name
+custom.app.example.com {
+	respond "tcp gateway" 404
+}
+
+example.com {
+	respond "hello"
+}
