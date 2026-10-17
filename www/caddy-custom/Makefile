@@ -42,8 +42,15 @@ CADDY_CUSTOM_PLUGINS?=	\
 	github.com/caddy-dns/cloudflare@v0.2.4 \
 	github.com/kad/wstunnel-go/pkg/caddy@v0.0.4
 
+# Modules pinned to a version without being plugins (module@version), e.g. the
+# core module of a plugin that lives in the same repository.
+CADDY_CUSTOM_DEPS?=
+
 .for plugin in ${CADDY_CUSTOM_PLUGINS}
 PLUGINS+=	--with ${plugin}
+.endfor
+.for dep in ${CADDY_CUSTOM_DEPS}
+PLUGINS+=	--replace ${dep:C/@.*//}=${dep}
 .endfor
 
 XCADDY_GO_BUILD_FLAGS?=	${GO_BUILDFLAGS}
