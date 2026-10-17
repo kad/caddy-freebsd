@@ -25,6 +25,7 @@ CONFLICTS_INSTALL=	caddy
 
 USE_RC_SUBR=	caddy
 SUB_FILES=	Caddyfile.sample pkg-message
+ETCDIR=		${PREFIX}/etc/caddy
 USERS=		www
 GROUPS=		www
 
