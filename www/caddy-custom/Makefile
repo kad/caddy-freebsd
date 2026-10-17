@@ -50,7 +50,8 @@ XCADDY_GO_BUILD_FLAGS?=	${GO_BUILDFLAGS}
 
 XCADDY_ENV+=	XCADDY_WHICH_GO="${GO_CMD}" \
 		XCADDY_GO_BUILD_FLAGS="${XCADDY_GO_BUILD_FLAGS}" \
-		GOCACHE=${WRKDIR}/gocache GOPATH=${WRKDIR}
+		GOCACHE=${WRKDIR}/gocache GOPATH=${WRKDIR}/go \
+		GOFLAGS=-modcacherw
 
 EXAMPLES_FILES=	README cloudflare.Caddyfile dynamicdns.Caddyfile environment \
 		layer4-alt-port.Caddyfile layer4.Caddyfile ratelimit.Caddyfile \
